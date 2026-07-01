@@ -285,7 +285,7 @@ import { createCloudStore } from "./firebase-backend.js";
         + '<div><label>材料名稱</label><input type="text" placeholder="例如：帆布" value="'+escapeHtml(m.name)+'" data-field="name" data-idx="'+idx+'"></div>'
         + '<div><label>單位（選填）</label><input type="text" placeholder="例如：尺／公克／顆" value="'+escapeHtml(m.unit)+'" data-field="unit" data-idx="'+idx+'"></div>'
         + '<div><label>用量</label><input type="number" min="0" step="0.1" value="'+ (m.qty!=null?m.qty:1) +'" data-field="qty" data-idx="'+idx+'"></div>'
-        + '<div><label>單價</label><input type="number" min="0" step="1" value="'+ (m.unitCost!=null?m.unitCost:0) +'" data-field="unitCost" data-idx="'+idx+'"></div>'
+        + '<div><label>單價</label><input type="number" min="0" step="0.01" value="'+ (m.unitCost!=null?m.unitCost:0) +'" data-field="unitCost" data-idx="'+idx+'"></div>'
       + '</div>'
       + '<div class="item-subtotal" id="mat_subtotal_'+idx+'">小計：' + money((Number(m.qty)||0)*(Number(m.unitCost)||0)) + '</div>'
       + '</div>';
@@ -302,6 +302,71 @@ import { createCloudStore } from "./firebase-backend.js";
     renderMaterialsEditor();
     recalcOutputs();
   });
+
+  /* ---------- Fabric area cost helper ---------- */
+  function fabricCalcValue(id){
+    return num(document.getElementById(id).value);
+  }
+
+  function currentFabricCost(){
+    var totalArea = fabricCalcValue('fc_totalWidth') * fabricCalcValue('fc_totalHeight');
+    var pieceArea = fabricCalcValue('fc_pieceWidth') * fabricCalcValue('fc_pieceHeight');
+    var totalPrice = fabricCalcValue('fc_totalPrice');
+    var wasteRate = fabricCalcValue('fc_waste') / 100;
+
+    if(totalArea <= 0 || pieceArea <= 0 || totalPrice <= 0) return 0;
+    return (totalPrice / totalArea) * pieceArea * (1 + wasteRate);
+  }
+
+  function renderFabricCalc(){
+    var totalArea = fabricCalcValue('fc_totalWidth') * fabricCalcValue('fc_totalHeight');
+    var pieceArea = fabricCalcValue('fc_pieceWidth') * fabricCalcValue('fc_pieceHeight');
+    var cost = currentFabricCost();
+    var detail = document.getElementById('fabricCalcDetail');
+    var out = document.getElementById('fabricCalcOut');
+
+    out.textContent = money(cost);
+    if(totalArea > 0 && pieceArea > 0){
+      detail.textContent = '整塊布面積 ' + totalArea.toLocaleString('zh-TW') + '，單件用布面積 ' + pieceArea.toLocaleString('zh-TW') + '，約可做 ' + Math.floor(totalArea / pieceArea) + ' 件';
+    }else{
+      detail.textContent = '輸入尺寸與價格後自動估算';
+    }
+  }
+
+  function applyFabricCostToMaterials(){
+    var cost = currentFabricCost();
+    if(cost <= 0){
+      toast('請先輸入有效的布料尺寸與價格');
+      return;
+    }
+
+    var materialName = document.getElementById('fc_name').value.trim() || '布料';
+    var targetIdx = state.formMaterials.findIndex(function(m){
+      return !(m.name || m.unit || Number(m.unitCost));
+    });
+    if(targetIdx === -1){
+      targetIdx = state.formMaterials.length;
+      state.formMaterials.push({ id: uid(), name:'', unit:'', qty:1, unitCost:0 });
+    }
+
+    state.formMaterials[targetIdx] = {
+      id: state.formMaterials[targetIdx].id || uid(),
+      name: materialName,
+      unit: '片',
+      qty: 1,
+      unitCost: Math.round(cost * 100) / 100
+    };
+
+    renderMaterialsEditor();
+    recalcOutputs();
+    toast('已帶入材料費');
+  }
+
+  ['fc_name','fc_totalWidth','fc_totalHeight','fc_totalPrice','fc_pieceWidth','fc_pieceHeight','fc_waste'].forEach(function(id){
+    document.getElementById(id).addEventListener('input', renderFabricCalc);
+  });
+  document.getElementById('applyFabricCostBtn').addEventListener('click', applyFabricCostToMaterials);
+  renderFabricCalc();
 
   /* ---------- Compare table (3 pricing methods, switchable) ---------- */
   function renderCompareTable(){
