@@ -2,12 +2,26 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isAllowedUser() {
+      return request.auth != null
+        && (
+          request.auth.uid in [
+            "v5y5ycBQw8W1C7cjcLppOHBPOD93",
+            "vbTLMWoYdwUEM6aI1vaUkDK8trV2"
+          ]
+          || request.auth.token.email in [
+            "lolas8228@gmail.com",
+            "k89150@gmail.com"
+          ]
+        );
+    }
+
     match /orders/{orderId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isAllowedUser();
     }
 
     match /costSheets/{sheetId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isAllowedUser();
     }
   }
 }
