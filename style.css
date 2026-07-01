@@ -586,7 +586,7 @@ header.top::after{
 @media (max-width:520px){
   #firebaseAuthBar{
     right:12px;
-    bottom:calc(12px + env(safe-area-inset-bottom));
+    bottom:calc(86px + env(safe-area-inset-bottom));
     max-width:calc(100vw - 24px);
     padding:7px;
     border-radius:999px;
