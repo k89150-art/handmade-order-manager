@@ -49,6 +49,12 @@ const authReady = new Promise(function(resolve) {
   onAuthStateChanged(auth, function(user) {
     currentUser = user;
     renderAuthUi(user);
+    window.dispatchEvent(new CustomEvent("handmade-auth-change", {
+      detail: {
+        signedIn: !!user,
+        workspace: user ? workspaceIdForUser(user) : null
+      }
+    }));
     if (user) {
       window.dispatchEvent(new CustomEvent("handmade-auth-ready"));
     }

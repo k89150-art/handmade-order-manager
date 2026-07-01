@@ -1,4 +1,4 @@
-import { createCloudStore } from "./firebase-backend.js?v=20260701-mobile-form2";
+import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-cache1";
 
 (function(){
   "use strict";
@@ -22,6 +22,14 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-mobile-form2"
       console.error("Failed to sync cost sheets to Firestore", error);
     });
   }
+  function clearSheetsView(){
+    state.sheets = [];
+    state.editingId = null;
+    localStorage.removeItem(STORAGE_KEY);
+    closeForm();
+    renderStats();
+    renderList();
+  }
   function loadSheetsFromCloud(){
     cloudSheets.loadAll().then(function(sheets){
       if(sheets === null) return;
@@ -37,7 +45,7 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-mobile-form2"
   var METHOD_LABEL = { markup: "加成倍率", margin: "目標毛利率", fixed: "指定利潤金額" };
 
   var state = {
-    sheets: loadSheets(),
+    sheets: [],
     editingId: null,
     formMaterials: [],
     formMethod: 'markup'
@@ -647,6 +655,9 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-mobile-form2"
   /* ===================== Init ===================== */
   renderStats();
   renderList();
+  window.addEventListener("handmade-auth-change", function(event){
+    if(!event.detail || !event.detail.signedIn) clearSheetsView();
+  });
   window.addEventListener("handmade-auth-ready", loadSheetsFromCloud);
   loadSheetsFromCloud();
 })();

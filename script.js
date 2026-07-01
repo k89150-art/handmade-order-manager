@@ -1,4 +1,4 @@
-import { createCloudStore } from "./firebase-backend.js?v=20260701-mobile-form2";
+import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-cache1";
 
 (function(){
   "use strict";
@@ -22,6 +22,14 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-mobile-form2"
       console.error("Failed to sync orders to Firestore", error);
     });
   }
+  function clearOrdersView(){
+    state.orders = [];
+    state.editingId = null;
+    localStorage.removeItem(STORAGE_KEY);
+    closeForm();
+    renderStats();
+    renderList();
+  }
   function loadOrdersFromCloud(){
     cloudOrders.loadAll().then(function(orders){
       if(orders === null) return;
@@ -35,7 +43,7 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-mobile-form2"
   }
 
   var state = {
-    orders: loadOrders(),
+    orders: [],
     editingId: null,
     formItems: [] // temp items while editing in modal
   };
@@ -465,6 +473,9 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-mobile-form2"
   /* ===================== Init ===================== */
   renderStats();
   renderList();
+  window.addEventListener("handmade-auth-change", function(event){
+    if(!event.detail || !event.detail.signedIn) clearOrdersView();
+  });
   window.addEventListener("handmade-auth-ready", loadOrdersFromCloud);
   loadOrdersFromCloud();
 })();
