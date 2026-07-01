@@ -4,6 +4,7 @@ import {
   getAuth,
   onAuthStateChanged,
   signInWithPopup,
+  signInWithRedirect,
   signOut
 } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 import {
@@ -53,6 +54,21 @@ function signInWithGoogle() {
   return signInWithPopup(auth, provider);
 }
 
+function signInWithGoogleRedirect() {
+  const provider = new GoogleAuthProvider();
+  return signInWithRedirect(auth, provider);
+}
+
+function authErrorMessage(error) {
+  const code = error && error.code ? error.code : "unknown";
+  const message = error && error.message ? error.message : "Unknown Firebase auth error.";
+  return "Firebase 登入失敗\n\n"
+    + "錯誤碼: " + code + "\n"
+    + "目前網域: " + window.location.hostname + "\n\n"
+    + message + "\n\n"
+    + "如果錯誤碼是 auth/unauthorized-domain，請到 Firebase Authentication 的 Authorized domains 加入目前網域。";
+}
+
 function renderAuthUi(user) {
   if (!document.body) {
     document.addEventListener("DOMContentLoaded", function() { renderAuthUi(currentUser); }, { once: true });
@@ -81,7 +97,14 @@ function renderAuthUi(user) {
     const action = user ? signOut(auth) : signInWithGoogle();
     action.catch(function(error) {
       console.error("Firebase auth failed", error);
-      alert("Firebase 登入失敗，請確認 Firebase Console 已啟用 Google 登入。");
+      if (!user && (error.code === "auth/popup-blocked" || error.code === "auth/popup-closed-by-user" || error.code === "auth/cancelled-popup-request")) {
+        signInWithGoogleRedirect().catch(function(redirectError) {
+          console.error("Firebase redirect auth failed", redirectError);
+          alert(authErrorMessage(redirectError));
+        });
+        return;
+      }
+      alert(authErrorMessage(error));
     });
   });
   bar.appendChild(button);
