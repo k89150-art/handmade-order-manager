@@ -1,3 +1,4 @@
+[README (1).md](https://github.com/user-attachments/files/29532577/README.1.md)
 # 手作訂單本｜訂單管理器
 
 給手作 / 布包賣家用的訂單管理小工具。單一 HTML 檔案，免安裝、免資料庫，用電腦跟手機都能開。
@@ -44,9 +45,13 @@
 
 ```
 handmade-order-manager/
-├── index.html   ← 整個工具就這一個檔案（HTML + CSS + JS）
+├── index.html   ← 網頁結構（HTML）
+├── style.css    ← 外觀樣式（CSS）
+├── script.js    ← 功能邏輯（JS：新增/編輯/刪除訂單、計算、備份）
 └── README.md    ← 這份說明
 ```
+
+上傳到 GitHub 時，這**四個檔案都要放在同一層資料夾**（不要放進子資料夾），因為 `index.html` 裡面是用相對路徑 `href="style.css"` 和 `src="script.js"` 去找這兩個檔案，路徑對不上網頁就會變成沒有樣式、沒有功能的空白畫面。
 
 ## 之後的規劃
 
