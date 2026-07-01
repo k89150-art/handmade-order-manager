@@ -26,7 +26,7 @@
 }
 
 *{box-sizing:border-box;}
-html,body{margin:0;padding:0;}
+html,body{margin:0;padding:0;max-width:100%;overflow-x:hidden;}
 body{
   font-family: var(--font-body);
   background: var(--bg);
@@ -40,6 +40,7 @@ body{
 }
 a{color:inherit;}
 button{font-family:inherit;}
+body.modal-open{ overflow:hidden; }
 ::selection{background: var(--indigo); color:#fff;}
 
 /* focus visibility */
@@ -325,6 +326,7 @@ header.top::after{
   background: var(--bg);
   width: 100%;
   max-width: 640px;
+  min-width:0;
   max-height: 92dvh;
   border-radius: 18px 18px 0 0;
   box-shadow: var(--shadow-lift);
@@ -353,8 +355,13 @@ header.top::after{
 .modal-body{
   padding: 18px 20px 8px;
   overflow-y:auto;
+  overflow-x:hidden;
   flex:1 1 auto;
+  min-width:0;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
+.modal-body > form{ min-width:0; }
 .field{ margin-bottom: 14px; }
 .field label{
   display:block; font-size:12.5px; font-weight:600; color:var(--ink-soft);
@@ -362,6 +369,7 @@ header.top::after{
 }
 .field input, .field select, .field textarea{
   width:100%;
+  min-width:0;
   padding: 10px 12px;
   border: 1px solid var(--line-strong);
   border-radius: 10px;
@@ -370,9 +378,19 @@ header.top::after{
   color: var(--ink);
   font-family: inherit;
 }
+.field input[type="date"]{
+  min-height: 48px;
+  text-align:left;
+  appearance:none;
+  -webkit-appearance:none;
+  line-height:1.4;
+}
+.field input[type="date"]::-webkit-date-and-time-value{
+  text-align:left;
+}
 .field textarea{ resize:vertical; min-height:56px; }
-.row2{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
-.row3{ display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; }
+.row2{ display:grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap:10px; }
+.row3{ display:grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); gap:10px; }
 @media (max-width:520px){
   .row2,
   .row3{ grid-template-columns: 1fr; }
@@ -401,10 +419,11 @@ header.top::after{
   padding: 12px;
   margin-bottom: 10px;
   position:relative;
+  min-width:0;
 }
 .item-editor .item-grid{
   display:grid;
-  grid-template-columns: 1.3fr 1fr 0.7fr 0.9fr;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 0.7fr) minmax(0, 0.9fr);
   gap:8px;
 }
 @media (max-width:560px){
@@ -414,7 +433,7 @@ header.top::after{
   font-size:11px; color:var(--ink-faint); margin-bottom:3px; display:block;
 }
 .item-editor input{
-  width:100%; padding:8px 9px; border:1px solid var(--line); border-radius:8px; font-size:13.5px; background:#fff;
+  width:100%; min-width:0; padding:8px 9px; border:1px solid var(--line); border-radius:8px; font-size:13.5px; background:#fff;
 }
 .item-remove{
   position:absolute; top:8px; right:8px;

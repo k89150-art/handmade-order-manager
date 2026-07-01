@@ -82,27 +82,27 @@
             </div>
             <div class="field">
               <label for="fc_totalWidth">整塊布寬</label>
-              <input type="number" id="fc_totalWidth" min="0" step="0.1" value="110">
+              <input type="number" id="fc_totalWidth" min="0" step="0.1" value="110" inputmode="decimal">
             </div>
             <div class="field">
               <label for="fc_totalHeight">整塊布長</label>
-              <input type="number" id="fc_totalHeight" min="0" step="0.1" value="90">
+              <input type="number" id="fc_totalHeight" min="0" step="0.1" value="90" inputmode="decimal">
             </div>
             <div class="field">
               <label for="fc_totalPrice">整塊布價格</label>
-              <input type="number" id="fc_totalPrice" min="0" step="1" value="350">
+              <input type="number" id="fc_totalPrice" min="0" step="1" value="350" inputmode="decimal">
             </div>
             <div class="field">
               <label for="fc_pieceWidth">單件用布寬</label>
-              <input type="number" id="fc_pieceWidth" min="0" step="0.1" value="64">
+              <input type="number" id="fc_pieceWidth" min="0" step="0.1" value="64" inputmode="decimal">
             </div>
             <div class="field">
               <label for="fc_pieceHeight">單件用布長</label>
-              <input type="number" id="fc_pieceHeight" min="0" step="0.1" value="10">
+              <input type="number" id="fc_pieceHeight" min="0" step="0.1" value="10" inputmode="decimal">
             </div>
             <div class="field">
               <label for="fc_waste">損耗百分比</label>
-              <input type="number" id="fc_waste" min="0" step="1" value="0">
+              <input type="number" id="fc_waste" min="0" step="1" value="0" inputmode="decimal">
             </div>
           </div>
           <div class="fabric-calc-result">
@@ -115,21 +115,21 @@
         <div class="row2">
           <div class="field">
             <label for="f_laborHours">製作工時（小時）</label>
-            <input type="number" id="f_laborHours" min="0" step="0.1" value="0">
+            <input type="number" id="f_laborHours" min="0" step="0.1" value="0" inputmode="decimal">
           </div>
           <div class="field">
             <label for="f_hourlyRate">時薪／每小時工資</label>
-            <input type="number" id="f_hourlyRate" min="0" step="1" value="0">
+            <input type="number" id="f_hourlyRate" min="0" step="1" value="0" inputmode="decimal">
           </div>
         </div>
         <div class="row2">
           <div class="field">
             <label for="f_packaging">包材費（袋子、卡片、緞帶等）</label>
-            <input type="number" id="f_packaging" min="0" step="1" value="0">
+            <input type="number" id="f_packaging" min="0" step="1" value="0" inputmode="decimal">
           </div>
           <div class="field">
             <label for="f_other">其他成本（雜項、損耗等）</label>
-            <input type="number" id="f_other" min="0" step="1" value="0">
+            <input type="number" id="f_other" min="0" step="1" value="0" inputmode="decimal">
           </div>
         </div>
 
@@ -141,7 +141,7 @@
         <div class="section-title">平台／通路手續費（選填）</div>
         <div class="field">
           <label for="f_platformFee">手續費百分比（例如蝦皮、露天，沒有就填 0）</label>
-          <input type="number" id="f_platformFee" min="0" max="100" step="0.1" value="0">
+          <input type="number" id="f_platformFee" min="0" max="100" step="0.1" value="0" inputmode="decimal">
         </div>
 
         <div class="section-title">定價方式：選一個當作主要建議售價，其他也會一起算給你比較</div>
@@ -170,6 +170,6 @@
 
 <div class="toast" id="toast"></div>
 
-<script type="module" src="cost.js?v=20260701-sync-layout1"></script>
+<script type="module" src="cost.js?v=20260701-mobile-form2"></script>
 </body>
 </html>

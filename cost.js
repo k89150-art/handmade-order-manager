@@ -1,4 +1,4 @@
-import { createCloudStore } from "./firebase-backend.js?v=20260701-sync-layout1";
+import { createCloudStore } from "./firebase-backend.js?v=20260701-mobile-form2";
 
 (function(){
   "use strict";
@@ -206,6 +206,27 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-sync-layout1"
 
   /* ===================== Form / Modal ===================== */
   var overlay = document.getElementById('overlay');
+  var lockedScrollY = 0;
+
+  function lockPageScroll(){
+    lockedScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+    document.body.style.position = 'fixed';
+    document.body.style.top = '-' + lockedScrollY + 'px';
+    document.body.style.left = '0';
+    document.body.style.right = '0';
+    document.body.style.width = '100%';
+    document.body.classList.add('modal-open');
+  }
+
+  function unlockPageScroll(){
+    document.body.classList.remove('modal-open');
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.left = '';
+    document.body.style.right = '';
+    document.body.style.width = '';
+    window.scrollTo(0, lockedScrollY);
+  }
 
   function openForm(sheetId){
     state.editingId = sheetId || null;
@@ -238,11 +259,13 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-sync-layout1"
     recalcOutputs();
 
     overlay.classList.add('open');
+    lockPageScroll();
     setTimeout(function(){ document.getElementById('f_name').focus(); }, 50);
   }
 
   function closeForm(){
     overlay.classList.remove('open');
+    unlockPageScroll();
     state.editingId = null;
   }
 
@@ -281,8 +304,8 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-sync-layout1"
       + '<div class="item-grid">'
         + '<div><label>材料名稱</label><input type="text" placeholder="例如：帆布" value="'+escapeHtml(m.name)+'" data-field="name" data-idx="'+idx+'"></div>'
         + '<div><label>單位（選填）</label><input type="text" placeholder="例如：尺／公克／顆" value="'+escapeHtml(m.unit)+'" data-field="unit" data-idx="'+idx+'"></div>'
-        + '<div><label>用量</label><input type="number" min="0" step="0.1" value="'+ (m.qty!=null?m.qty:1) +'" data-field="qty" data-idx="'+idx+'"></div>'
-        + '<div><label>單價</label><input type="number" min="0" step="0.01" value="'+ (m.unitCost!=null?m.unitCost:0) +'" data-field="unitCost" data-idx="'+idx+'"></div>'
+        + '<div><label>用量</label><input type="number" min="0" step="0.1" inputmode="decimal" value="'+ (m.qty!=null?m.qty:1) +'" data-field="qty" data-idx="'+idx+'"></div>'
+        + '<div><label>單價</label><input type="number" min="0" step="0.01" inputmode="decimal" value="'+ (m.unitCost!=null?m.unitCost:0) +'" data-field="unitCost" data-idx="'+idx+'"></div>'
       + '</div>'
       + '<div class="item-subtotal" id="mat_subtotal_'+idx+'">小計：' + money((Number(m.qty)||0)*(Number(m.unitCost)||0)) + '</div>'
       + '</div>';
@@ -370,9 +393,9 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-sync-layout1"
     var p = state.formParams;
     var el = document.getElementById('compareTable');
     el.innerHTML = ''
-      + compareRow('markup', '加成倍率', '<input type="number" min="0" step="0.1" id="mm_multiplier" value="'+p.markupMultiplier+'">', '成本 × 倍率')
-      + compareRow('margin', '目標毛利率', '<input type="number" min="0" max="99" step="1" id="mm_margin" value="'+p.marginPercent+'">', '售價的多少% 是利潤')
-      + compareRow('fixed', '指定利潤金額', '<input type="number" min="0" step="10" id="mm_fixed" value="'+p.fixedProfit+'">', '每件想賺多少錢');
+      + compareRow('markup', '加成倍率', '<input type="number" min="0" step="0.1" inputmode="decimal" id="mm_multiplier" value="'+p.markupMultiplier+'">', '成本 × 倍率')
+      + compareRow('margin', '目標毛利率', '<input type="number" min="0" max="99" step="1" inputmode="decimal" id="mm_margin" value="'+p.marginPercent+'">', '售價的多少% 是利潤')
+      + compareRow('fixed', '指定利潤金額', '<input type="number" min="0" step="10" inputmode="decimal" id="mm_fixed" value="'+p.fixedProfit+'">', '每件想賺多少錢');
 
     el.querySelectorAll('.compare-row').forEach(function(row){
       row.addEventListener('click', function(e){

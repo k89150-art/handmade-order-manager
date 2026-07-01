@@ -1,4 +1,4 @@
-import { createCloudStore } from "./firebase-backend.js?v=20260701-sync-layout1";
+import { createCloudStore } from "./firebase-backend.js?v=20260701-mobile-form2";
 
 (function(){
   "use strict";
@@ -207,6 +207,27 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-sync-layout1"
 
   /* ===================== Form / Modal ===================== */
   var overlay = document.getElementById('overlay');
+  var lockedScrollY = 0;
+
+  function lockPageScroll(){
+    lockedScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+    document.body.style.position = 'fixed';
+    document.body.style.top = '-' + lockedScrollY + 'px';
+    document.body.style.left = '0';
+    document.body.style.right = '0';
+    document.body.style.width = '100%';
+    document.body.classList.add('modal-open');
+  }
+
+  function unlockPageScroll(){
+    document.body.classList.remove('modal-open');
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.left = '';
+    document.body.style.right = '';
+    document.body.style.width = '';
+    window.scrollTo(0, lockedScrollY);
+  }
 
   function openForm(orderId){
     state.editingId = orderId || null;
@@ -229,11 +250,13 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-sync-layout1"
 
     renderItemsEditor();
     overlay.classList.add('open');
+    lockPageScroll();
     setTimeout(function(){ document.getElementById('f_customer').focus(); }, 50);
   }
 
   function closeForm(){
     overlay.classList.remove('open');
+    unlockPageScroll();
     state.editingId = null;
   }
 
@@ -273,8 +296,8 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-sync-layout1"
       + '<div class="item-grid">'
         + '<div><label>商品名稱</label><input type="text" placeholder="例如：托特包" value="'+escapeHtml(it.name)+'" data-field="name" data-idx="'+idx+'"></div>'
         + '<div><label>布料／款式</label><input type="text" placeholder="例如：藍染帆布" value="'+escapeHtml(it.fabric)+'" data-field="fabric" data-idx="'+idx+'"></div>'
-        + '<div><label>數量</label><input type="number" min="0" step="1" value="'+ (it.qty!=null?it.qty:1) +'" data-field="qty" data-idx="'+idx+'"></div>'
-        + '<div><label>單價</label><input type="number" min="0" step="1" value="'+ (it.price!=null?it.price:0) +'" data-field="price" data-idx="'+idx+'"></div>'
+        + '<div><label>數量</label><input type="number" min="0" step="1" inputmode="numeric" value="'+ (it.qty!=null?it.qty:1) +'" data-field="qty" data-idx="'+idx+'"></div>'
+        + '<div><label>單價</label><input type="number" min="0" step="1" inputmode="decimal" value="'+ (it.price!=null?it.price:0) +'" data-field="price" data-idx="'+idx+'"></div>'
       + '</div>'
       + '<div class="item-subtotal" id="subtotal_'+idx+'">小計：' + money((Number(it.qty)||0)*(Number(it.price)||0)) + '</div>'
       + '</div>';
