@@ -1,4 +1,3 @@
-[README (1).md](https://github.com/user-attachments/files/29532577/README.1.md)
 # 手作訂單本｜訂單管理器
 
 給手作 / 布包賣家用的訂單管理小工具。單一 HTML 檔案，免安裝、免資料庫，用電腦跟手機都能開。
