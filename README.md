@@ -50,8 +50,8 @@ projectId: "handmade-order-c3fc0"
 ### Firebase Console 需要開啟
 
 1. 建立 / 啟用 Firestore Database。
-2. 到 Authentication 啟用 `Anonymous` 匿名登入。
-3. 部署 `firestore.rules`，讓已登入的匿名使用者可以讀寫資料。
+2. 到 Authentication 啟用 `Google` 登入。
+3. 部署 `firestore.rules`，讓已登入的 Google 使用者可以讀寫資料。
 
 ### Firebase CLI 部署
 
@@ -70,7 +70,7 @@ firebase deploy
 - 如果 Firestore 或登入設定沒有啟用，工具會退回使用 localStorage，這時就只剩本機資料。
 
 **建議做法：**
-1. 先確認 Firebase Console 已啟用 Firestore Database 和 Anonymous Authentication。
+1. 先確認 Firebase Console 已啟用 Firestore Database 和 Google Authentication。
 2. 定期在兩個頁面都按「匯出備份 (JSON)」下載備份檔，作為人工備份。
 3. 如果有舊的 localStorage 備份，可以用「匯入備份」匯入；下一次儲存會同步到 Firestore。
 

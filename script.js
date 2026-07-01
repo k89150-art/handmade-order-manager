@@ -445,5 +445,6 @@ import { createCloudStore } from "./firebase-backend.js";
   /* ===================== Init ===================== */
   renderStats();
   renderList();
+  window.addEventListener("handmade-auth-ready", loadOrdersFromCloud);
   loadOrdersFromCloud();
 })();

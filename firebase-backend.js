@@ -1,5 +1,11 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
-import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+import {
+  GoogleAuthProvider,
+  getAuth,
+  onAuthStateChanged,
+  signInWithPopup,
+  signOut
+} from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 import {
   collection,
   deleteDoc,
@@ -20,15 +26,67 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+auth.languageCode = "zh-TW";
 const db = getFirestore(app);
 
-let authPromise = null;
+let authUiReady = false;
+let currentUser = null;
 
-function ensureAuth() {
-  if (!authPromise) {
-    authPromise = signInAnonymously(auth);
+const authReady = new Promise(function(resolve) {
+  onAuthStateChanged(auth, function(user) {
+    currentUser = user;
+    renderAuthUi(user);
+    if (user) {
+      window.dispatchEvent(new CustomEvent("handmade-auth-ready"));
+    }
+    resolve(user);
+  });
+});
+
+async function requireUser() {
+  await authReady;
+  return currentUser;
+}
+
+function signInWithGoogle() {
+  const provider = new GoogleAuthProvider();
+  return signInWithPopup(auth, provider);
+}
+
+function renderAuthUi(user) {
+  if (!document.body) {
+    document.addEventListener("DOMContentLoaded", function() { renderAuthUi(currentUser); }, { once: true });
+    return;
   }
-  return authPromise;
+
+  let bar = document.getElementById("firebaseAuthBar");
+  if (!bar) {
+    bar = document.createElement("div");
+    bar.id = "firebaseAuthBar";
+    bar.style.cssText = "position:fixed;right:16px;bottom:16px;z-index:1000;display:flex;gap:8px;align-items:center;padding:10px 12px;border:1px solid rgba(0,0,0,.12);border-radius:10px;background:#fff;box-shadow:0 10px 24px rgba(0,0,0,.16);font:14px/1.4 system-ui,-apple-system,BlinkMacSystemFont,'Noto Sans TC',sans-serif;color:#2d2d2d;";
+    document.body.appendChild(bar);
+  }
+
+  bar.innerHTML = "";
+
+  const label = document.createElement("span");
+  label.textContent = user ? (user.displayName || user.email || "已登入") : "尚未同步";
+  bar.appendChild(label);
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.textContent = user ? "登出" : "Google 登入";
+  button.style.cssText = "border:0;border-radius:8px;padding:7px 10px;background:#2f5d50;color:#fff;font:inherit;cursor:pointer;";
+  button.addEventListener("click", function() {
+    const action = user ? signOut(auth) : signInWithGoogle();
+    action.catch(function(error) {
+      console.error("Firebase auth failed", error);
+      alert("Firebase 登入失敗，請確認 Firebase Console 已啟用 Google 登入。");
+    });
+  });
+  bar.appendChild(button);
+
+  authUiReady = true;
 }
 
 function cleanForFirestore(item) {
@@ -42,7 +100,8 @@ export function createCloudStore(collectionName) {
 
   return {
     async loadAll() {
-      await ensureAuth();
+      const user = await requireUser();
+      if (!user) return [];
       const snap = await getDocs(colRef);
       return snap.docs.map(function(documentSnap) {
         return Object.assign({ id: documentSnap.id }, documentSnap.data());
@@ -50,7 +109,12 @@ export function createCloudStore(collectionName) {
     },
 
     async saveAll(items) {
-      await ensureAuth();
+      const user = await requireUser();
+      if (!user) {
+        if (!authUiReady) renderAuthUi(null);
+        console.warn("Skipped Firestore sync because the user is not signed in.");
+        return;
+      }
       const safeItems = Array.isArray(items) ? items : [];
       const existing = await getDocs(colRef);
       const nextIds = new Set(safeItems.map(function(item) { return item.id; }).filter(Boolean));
