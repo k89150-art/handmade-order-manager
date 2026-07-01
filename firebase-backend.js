@@ -116,15 +116,28 @@ function renderAuthUi(user) {
   }
 
   bar.innerHTML = "";
+  bar.className = user ? "signed-in" : "signed-out";
 
   const label = document.createElement("span");
+  label.className = "auth-label";
   label.textContent = user ? ((user.displayName || user.email || "已登入") + " · " + workspaceLabelForUser(user)) : "尚未同步";
   bar.appendChild(label);
 
+  if (user) {
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "auth-toggle";
+    toggle.textContent = "帳號";
+    toggle.addEventListener("click", function() {
+      bar.classList.toggle("expanded");
+    });
+    bar.appendChild(toggle);
+  }
+
   const button = document.createElement("button");
   button.type = "button";
+  button.className = "auth-action";
   button.textContent = user ? "登出" : "Google 登入";
-  button.style.cssText = "border:0;border-radius:8px;padding:7px 10px;background:#2f5d50;color:#fff;font:inherit;cursor:pointer;";
   button.addEventListener("click", function() {
     const action = user ? signOut(auth) : signInWithGoogle();
     action.catch(function(error) {

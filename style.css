@@ -564,22 +564,66 @@ header.top::after{
   font:14px/1.4 system-ui,-apple-system,BlinkMacSystemFont,'Noto Sans TC',sans-serif;
   color:#2d2d2d;
 }
-#firebaseAuthBar span{
+#firebaseAuthBar .auth-label{
   min-width:0;
   overflow:hidden;
   text-overflow:ellipsis;
   white-space:nowrap;
 }
 #firebaseAuthBar button{
+  border:0;
+  border-radius:8px;
+  padding:7px 10px;
+  background:#2f5d50;
+  color:#fff;
+  font:inherit;
+  cursor:pointer;
   flex:none;
+}
+#firebaseAuthBar .auth-toggle{
+  display:none;
 }
 @media (max-width:520px){
   #firebaseAuthBar{
-    right:10px;
-    bottom:10px;
-    max-width:calc(100vw - 20px);
-    padding:8px 10px;
+    right:12px;
+    bottom:calc(12px + env(safe-area-inset-bottom));
+    max-width:calc(100vw - 24px);
+    padding:7px;
+    border-radius:999px;
     font-size:12px;
+  }
+  #firebaseAuthBar.signed-out .auth-label{
+    display:none;
+  }
+  #firebaseAuthBar.signed-out .auth-action{
+    padding:8px 12px;
+    border-radius:999px;
+  }
+  #firebaseAuthBar.signed-in{
+    gap:6px;
+  }
+  #firebaseAuthBar.signed-in .auth-label,
+  #firebaseAuthBar.signed-in .auth-action{
+    display:none;
+  }
+  #firebaseAuthBar.signed-in .auth-toggle{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:999px;
+    padding:8px 12px;
+    background:var(--indigo-deep);
+  }
+  #firebaseAuthBar.signed-in.expanded{
+    border-radius:14px;
+    padding:8px 10px;
+  }
+  #firebaseAuthBar.signed-in.expanded .auth-label{
+    display:block;
+    max-width:48vw;
+  }
+  #firebaseAuthBar.signed-in.expanded .auth-action{
+    display:inline-flex;
   }
 }
 
