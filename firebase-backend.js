@@ -30,6 +30,18 @@ const auth = getAuth(app);
 auth.languageCode = "zh-TW";
 const db = getFirestore(app);
 
+const FAMILY_WORKSPACE_ID = "family";
+const FAMILY_USERS = [
+  {
+    uid: "v5y5ycBQw8W1C7cjcLppOHBPOD93",
+    email: "lolas8228@gmail.com"
+  },
+  {
+    uid: "vbTLMWoYdwUEM6aI1vaUkDK8trV2",
+    email: "k89150@gmail.com"
+  }
+];
+
 let authUiReady = false;
 let currentUser = null;
 
@@ -59,6 +71,21 @@ function signInWithGoogleRedirect() {
   return signInWithRedirect(auth, provider);
 }
 
+function isFamilyUser(user) {
+  if (!user) return false;
+  return FAMILY_USERS.some(function(allowedUser) {
+    return allowedUser.uid === user.uid || allowedUser.email === user.email;
+  });
+}
+
+function workspaceIdForUser(user) {
+  return isFamilyUser(user) ? FAMILY_WORKSPACE_ID : user.uid;
+}
+
+function workspaceLabelForUser(user) {
+  return isFamilyUser(user) ? "家庭資料" : "個人資料";
+}
+
 function authErrorMessage(error) {
   const code = error && error.code ? error.code : "unknown";
   const message = error && error.message ? error.message : "Unknown Firebase auth error.";
@@ -86,7 +113,7 @@ function renderAuthUi(user) {
   bar.innerHTML = "";
 
   const label = document.createElement("span");
-  label.textContent = user ? (user.displayName || user.email || "已登入") : "尚未同步";
+  label.textContent = user ? ((user.displayName || user.email || "已登入") + " · " + workspaceLabelForUser(user)) : "尚未同步";
   bar.appendChild(label);
 
   const button = document.createElement("button");
@@ -118,17 +145,53 @@ function cleanForFirestore(item) {
   return copy;
 }
 
-export function createCloudStore(collectionName) {
-  const colRef = collection(db, collectionName);
+function collectionForUser(user, collectionName) {
+  return collection(db, "workspaces", workspaceIdForUser(user), collectionName);
+}
 
+function legacyCollection(collectionName) {
+  return collection(db, collectionName);
+}
+
+function docsToItems(snap) {
+  return snap.docs.map(function(documentSnap) {
+    return Object.assign({ id: documentSnap.id }, documentSnap.data());
+  });
+}
+
+async function saveItemsToCollection(colRef, collectionName, items) {
+  const safeItems = Array.isArray(items) ? items : [];
+  const existing = await getDocs(colRef);
+  const nextIds = new Set(safeItems.map(function(item) { return item.id; }).filter(Boolean));
+
+  await Promise.all(existing.docs.map(function(documentSnap) {
+    if (nextIds.has(documentSnap.id)) return Promise.resolve();
+    return deleteDoc(documentSnap.ref);
+  }));
+
+  await Promise.all(safeItems.map(function(item) {
+    const id = item.id || String(Date.now());
+    return setDoc(doc(colRef, id), cleanForFirestore(Object.assign({}, item, { id: id })));
+  }));
+}
+
+export function createCloudStore(collectionName) {
   return {
     async loadAll() {
       const user = await requireUser();
       if (!user) return [];
+
+      const colRef = collectionForUser(user, collectionName);
       const snap = await getDocs(colRef);
-      return snap.docs.map(function(documentSnap) {
-        return Object.assign({ id: documentSnap.id }, documentSnap.data());
-      });
+      const workspaceItems = docsToItems(snap);
+      if (workspaceItems.length || !isFamilyUser(user)) return workspaceItems;
+
+      const legacySnap = await getDocs(legacyCollection(collectionName));
+      const legacyItems = docsToItems(legacySnap);
+      if (!legacyItems.length) return [];
+
+      await saveItemsToCollection(colRef, collectionName, legacyItems);
+      return legacyItems;
     },
 
     async saveAll(items) {
@@ -138,19 +201,7 @@ export function createCloudStore(collectionName) {
         console.warn("Skipped Firestore sync because the user is not signed in.");
         return;
       }
-      const safeItems = Array.isArray(items) ? items : [];
-      const existing = await getDocs(colRef);
-      const nextIds = new Set(safeItems.map(function(item) { return item.id; }).filter(Boolean));
-
-      await Promise.all(existing.docs.map(function(documentSnap) {
-        if (nextIds.has(documentSnap.id)) return Promise.resolve();
-        return deleteDoc(documentSnap.ref);
-      }));
-
-      await Promise.all(safeItems.map(function(item) {
-        const id = item.id || String(Date.now());
-        return setDoc(doc(db, collectionName, id), cleanForFirestore(Object.assign({}, item, { id: id })));
-      }));
+      await saveItemsToCollection(collectionForUser(user, collectionName), collectionName, items);
     }
   };
 }

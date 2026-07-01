@@ -42,8 +42,12 @@ projectId: "handmade-order-c3fc0"
 
 資料會同步到 Firestore：
 
-- `orders`：訂單管理器資料
-- `costSheets`：成本計算器資料
+- `workspaces/family/orders`：家庭共用訂單資料
+- `workspaces/family/costSheets`：家庭共用成本表資料
+- `workspaces/{使用者UID}/orders`：其他使用者自己的訂單資料
+- `workspaces/{使用者UID}/costSheets`：其他使用者自己的成本表資料
+
+`lolas8228@gmail.com` 和 `k89150@gmail.com` 會共用 `family` workspace。其他 Google 帳號登入後，會自動使用自己的 UID 作為 workspace，所以不同使用者看不到彼此資料。舊版的 `orders` / `costSheets` 會保留為唯讀，家庭帳號第一次打開新版時會自動複製到 `workspaces/family`。
 
 前端仍會保留一份 localStorage 快取。Firestore 暫時連不上時，畫面仍可讀取瀏覽器本機資料；下一次儲存時會再嘗試同步到雲端。
 
@@ -51,7 +55,7 @@ projectId: "handmade-order-c3fc0"
 
 1. 建立 / 啟用 Firestore Database。
 2. 到 Authentication 啟用 `Google` 登入。
-3. 部署 `firestore.rules`，讓已登入的 Google 使用者可以讀寫資料。
+3. 部署 `firestore.rules`，讓家庭帳號共用 family workspace，其他帳號只能讀寫自己的 workspace。
 
 ### Firebase CLI 部署
 
@@ -65,7 +69,8 @@ firebase deploy
 
 這兩個工具已經接上 Firestore 後端資料庫，同時也會在你目前這個瀏覽器的 `localStorage` 裡保留快取。訂單資料跟成本表資料是分開存的，互不影響。也就是說：
 
-- 換一台電腦、換手機、換瀏覽器，只要能連到同一個 Firebase 專案，就會讀到 Firestore 裡的資料。
+- 換一台電腦、換手機、換瀏覽器，只要登入同一個 Google 帳號，就會讀到該 workspace 裡的資料。
+- `lolas8228@gmail.com` 和 `k89150@gmail.com` 會看到同一份家庭資料；其他帳號會看到自己的空白資料庫。
 - 清除瀏覽器快取／資料，只會清掉本機快取；Firestore 裡的雲端資料不會因此刪除。
 - 如果 Firestore 或登入設定沒有啟用，工具會退回使用 localStorage，這時就只剩本機資料。
 

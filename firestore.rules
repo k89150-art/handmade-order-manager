@@ -2,7 +2,11 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isAllowedUser() {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isFamilyUser() {
       return request.auth != null
         && (
           request.auth.uid in [
@@ -16,12 +20,32 @@ service cloud.firestore {
         );
     }
 
+    function canAccessWorkspace(workspaceId) {
+      return isSignedIn()
+        && (
+          (workspaceId == "family" && isFamilyUser())
+          || workspaceId == request.auth.uid
+        );
+    }
+
+    match /workspaces/{workspaceId}/orders/{orderId} {
+      allow read, write: if canAccessWorkspace(workspaceId);
+    }
+
+    match /workspaces/{workspaceId}/costSheets/{sheetId} {
+      allow read, write: if canAccessWorkspace(workspaceId);
+    }
+
+    // Legacy collections are kept read-only for the family accounts so the app
+    // can migrate existing data into workspaces/family on first use.
     match /orders/{orderId} {
-      allow read, write: if isAllowedUser();
+      allow read: if isFamilyUser();
+      allow write: if false;
     }
 
     match /costSheets/{sheetId} {
-      allow read, write: if isAllowedUser();
+      allow read: if isFamilyUser();
+      allow write: if false;
     }
   }
 }
