@@ -1,4 +1,4 @@
-import { createCloudStore } from "./firebase-backend.js";
+import { createCloudStore } from "./firebase-backend.js?v=20260701-sync-layout1";
 
 (function(){
   "use strict";
@@ -24,10 +24,7 @@ import { createCloudStore } from "./firebase-backend.js";
   }
   function loadSheetsFromCloud(){
     cloudSheets.loadAll().then(function(sheets){
-      if(!sheets.length){
-        if(state.sheets.length) saveSheets(state.sheets);
-        return;
-      }
+      if(sheets === null) return;
       state.sheets = sheets;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state.sheets));
       renderStats();

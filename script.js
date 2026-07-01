@@ -1,4 +1,4 @@
-import { createCloudStore } from "./firebase-backend.js";
+import { createCloudStore } from "./firebase-backend.js?v=20260701-sync-layout1";
 
 (function(){
   "use strict";
@@ -24,10 +24,7 @@ import { createCloudStore } from "./firebase-backend.js";
   }
   function loadOrdersFromCloud(){
     cloudOrders.loadAll().then(function(orders){
-      if(!orders.length){
-        if(state.orders.length) saveOrders(state.orders);
-        return;
-      }
+      if(orders === null) return;
       state.orders = orders;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state.orders));
       renderStats();

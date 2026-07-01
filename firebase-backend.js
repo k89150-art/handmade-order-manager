@@ -106,7 +106,6 @@ function renderAuthUi(user) {
   if (!bar) {
     bar = document.createElement("div");
     bar.id = "firebaseAuthBar";
-    bar.style.cssText = "position:fixed;right:16px;bottom:16px;z-index:1000;display:flex;gap:8px;align-items:center;padding:10px 12px;border:1px solid rgba(0,0,0,.12);border-radius:10px;background:#fff;box-shadow:0 10px 24px rgba(0,0,0,.16);font:14px/1.4 system-ui,-apple-system,BlinkMacSystemFont,'Noto Sans TC',sans-serif;color:#2d2d2d;";
     document.body.appendChild(bar);
   }
 
@@ -179,7 +178,7 @@ export function createCloudStore(collectionName) {
   return {
     async loadAll() {
       const user = await requireUser();
-      if (!user) return [];
+      if (!user) return null;
 
       const colRef = collectionForUser(user, collectionName);
       const snap = await getDocs(colRef);
