@@ -112,7 +112,11 @@ function renderAuthUi(user) {
   if (!bar) {
     bar = document.createElement("div");
     bar.id = "firebaseAuthBar";
-    document.body.appendChild(bar);
+  }
+
+  const authHost = document.querySelector(".brand") || document.body;
+  if (bar.parentElement !== authHost) {
+    authHost.appendChild(bar);
   }
 
   bar.innerHTML = "";

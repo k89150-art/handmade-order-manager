@@ -1,4 +1,4 @@
-import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-pill2";
+import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1";
 
 (function(){
   "use strict";

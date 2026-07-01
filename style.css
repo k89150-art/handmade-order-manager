@@ -75,7 +75,7 @@ header.top::after{
   opacity:.5;
 }
 .brand{
-  display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
 }
 .brand .mark{ font-size: 26px; line-height:1; }
 .brand h1{
@@ -548,21 +548,16 @@ header.top::after{
 }
 
 #firebaseAuthBar{
-  position:fixed;
-  right:16px;
-  bottom:16px;
-  z-index:40;
   display:flex;
   gap:8px;
   align-items:center;
-  max-width:min(420px, calc(100vw - 32px));
-  padding:10px 12px;
-  border:1px solid rgba(0,0,0,.12);
-  border-radius:10px;
-  background:#fff;
-  box-shadow:0 10px 24px rgba(0,0,0,.16);
+  max-width:min(320px, 100%);
+  padding:7px 10px;
+  border:1px solid rgba(255,255,255,0.32);
+  border-radius:999px;
+  background:rgba(255,255,255,0.12);
   font:14px/1.4 system-ui,-apple-system,BlinkMacSystemFont,'Noto Sans TC',sans-serif;
-  color:#2d2d2d;
+  color:#fff;
 }
 #firebaseAuthBar .auth-label{
   min-width:0;
@@ -572,9 +567,9 @@ header.top::after{
 }
 #firebaseAuthBar button{
   border:0;
-  border-radius:8px;
+  border-radius:999px;
   padding:7px 10px;
-  background:#2f5d50;
+  background:rgba(255,255,255,0.18);
   color:#fff;
   font:inherit;
   cursor:pointer;
@@ -585,11 +580,12 @@ header.top::after{
 }
 @media (max-width:520px){
   #firebaseAuthBar{
-    right:12px;
-    bottom:calc(86px + env(safe-area-inset-bottom));
-    max-width:calc(100vw - 24px);
-    padding:7px;
-    border-radius:999px;
+    order:3;
+    margin-left:auto;
+    max-width:100%;
+    padding:0;
+    border:0;
+    background:transparent;
     font-size:12px;
   }
   #firebaseAuthBar.signed-out .auth-label{
@@ -598,6 +594,7 @@ header.top::after{
   #firebaseAuthBar.signed-out .auth-action{
     padding:8px 12px;
     border-radius:999px;
+    background:rgba(255,255,255,0.16);
   }
   #firebaseAuthBar.signed-in{
     gap:6px;
@@ -612,11 +609,13 @@ header.top::after{
     justify-content:center;
     border-radius:999px;
     padding:8px 12px;
-    background:var(--indigo-deep);
+    background:rgba(255,255,255,0.16);
   }
   #firebaseAuthBar.signed-in.expanded{
     border-radius:14px;
     padding:8px 10px;
+    border:1px solid rgba(255,255,255,0.32);
+    background:rgba(255,255,255,0.12);
   }
   #firebaseAuthBar.signed-in.expanded .auth-label{
     display:block;
