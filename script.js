@@ -1,8 +1,11 @@
+import { createCloudStore } from "./firebase-backend.js";
+
 (function(){
   "use strict";
 
   /* ===================== Storage ===================== */
   var STORAGE_KEY = "handmadeOrders_v1";
+  var cloudOrders = createCloudStore("orders");
 
   function loadOrders(){
     try{
@@ -15,6 +18,23 @@
   }
   function saveOrders(orders){
     localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
+    cloudOrders.saveAll(orders).catch(function(error){
+      console.error("Failed to sync orders to Firestore", error);
+    });
+  }
+  function loadOrdersFromCloud(){
+    cloudOrders.loadAll().then(function(orders){
+      if(!orders.length){
+        if(state.orders.length) saveOrders(state.orders);
+        return;
+      }
+      state.orders = orders;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.orders));
+      renderStats();
+      renderList();
+    }).catch(function(error){
+      console.error("Failed to load orders from Firestore", error);
+    });
   }
 
   var state = {
@@ -425,4 +445,5 @@
   /* ===================== Init ===================== */
   renderStats();
   renderList();
+  loadOrdersFromCloud();
 })();

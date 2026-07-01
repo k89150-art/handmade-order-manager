@@ -1,8 +1,11 @@
+import { createCloudStore } from "./firebase-backend.js";
+
 (function(){
   "use strict";
 
   /* ===================== Storage ===================== */
   var STORAGE_KEY = "handmadeCostSheets_v1";
+  var cloudSheets = createCloudStore("costSheets");
 
   function loadSheets(){
     try{
@@ -15,6 +18,23 @@
   }
   function saveSheets(sheets){
     localStorage.setItem(STORAGE_KEY, JSON.stringify(sheets));
+    cloudSheets.saveAll(sheets).catch(function(error){
+      console.error("Failed to sync cost sheets to Firestore", error);
+    });
+  }
+  function loadSheetsFromCloud(){
+    cloudSheets.loadAll().then(function(sheets){
+      if(!sheets.length){
+        if(state.sheets.length) saveSheets(state.sheets);
+        return;
+      }
+      state.sheets = sheets;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.sheets));
+      renderStats();
+      renderList();
+    }).catch(function(error){
+      console.error("Failed to load cost sheets from Firestore", error);
+    });
   }
 
   var METHOD_LABEL = { markup: "加成倍率", margin: "目標毛利率", fixed: "指定利潤金額" };
@@ -542,4 +562,5 @@
   /* ===================== Init ===================== */
   renderStats();
   renderList();
+  loadSheetsFromCloud();
 })();

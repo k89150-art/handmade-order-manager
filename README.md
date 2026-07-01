@@ -1,7 +1,7 @@
 [Uploading README.md…]()
 # 手作工具箱：訂單管理器 + 成本計算器
 
-給手作 / 布包賣家用的小工具，兩個頁面共用同一套設計，靠上方的導覽連結互相切換。免安裝、免資料庫，用電腦跟手機都能開。
+給手作 / 布包賣家用的小工具，兩個頁面共用同一套設計，靠上方的導覽連結互相切換。現在已接上 Firebase Firestore，可以讓不同裝置共用同一份訂單與成本資料。
 
 ## 一、訂單管理器（index.html）
 
@@ -27,24 +27,52 @@
 
 ## 兩個工具共用的功能
 
-- 資料存在瀏覽器的 localStorage 裡（見下方「重要」說明）
+- 資料會同步到 Firebase Firestore，並在瀏覽器 localStorage 保留快取
 - 匯出備份 JSON、匯入備份、匯出 CSV（可用 Excel 開，方便對帳／記帳）
 - 手機 / 電腦都適用的響應式版面
 - 上方導覽連結：訂單管理器 ↔ 成本計算器，一鍵互相切換
 
+## Firebase 後端資料庫
+
+目前使用 Firebase 專案：
+
+```js
+projectId: "handmade-order-c3fc0"
+```
+
+資料會同步到 Firestore：
+
+- `orders`：訂單管理器資料
+- `costSheets`：成本計算器資料
+
+前端仍會保留一份 localStorage 快取。Firestore 暫時連不上時，畫面仍可讀取瀏覽器本機資料；下一次儲存時會再嘗試同步到雲端。
+
+### Firebase Console 需要開啟
+
+1. 建立 / 啟用 Firestore Database。
+2. 到 Authentication 啟用 `Anonymous` 匿名登入。
+3. 部署 `firestore.rules`，讓已登入的匿名使用者可以讀寫資料。
+
+### Firebase CLI 部署
+
+```bash
+firebase login
+firebase use handmade-order-c3fc0
+firebase deploy
+```
+
 ## ⚠️ 重要：資料存在哪裡
 
-這兩個工具**沒有後端資料庫**，所有資料是存在你目前這個瀏覽器的 `localStorage` 裡。訂單資料跟成本表資料是分開存的，互不影響。也就是說：
+這兩個工具已經接上 Firestore 後端資料庫，同時也會在你目前這個瀏覽器的 `localStorage` 裡保留快取。訂單資料跟成本表資料是分開存的，互不影響。也就是說：
 
-- 換一台電腦、換手機、換瀏覽器（例如從 Chrome 換到 Safari），**都看不到之前的資料**，因為那是存在原本那個瀏覽器裡的。
-- 清除瀏覽器快取／資料，也會把訂單跟成本表清掉。
+- 換一台電腦、換手機、換瀏覽器，只要能連到同一個 Firebase 專案，就會讀到 Firestore 裡的資料。
+- 清除瀏覽器快取／資料，只會清掉本機快取；Firestore 裡的雲端資料不會因此刪除。
+- 如果 Firestore 或登入設定沒有啟用，工具會退回使用 localStorage，這時就只剩本機資料。
 
 **建議做法：**
-1. 主要固定用一個裝置＋一個瀏覽器記帳（例如手機的 Chrome）。
-2. 定期在兩個頁面都按「匯出備份 (JSON)」下載備份檔，存到雲端硬碟（Google Drive、iCloud 等）。
-3. 如果要在另一台裝置上接續使用，先在新裝置打開網頁，按「匯入備份」，選擇剛剛下載的 JSON 檔即可。
-
-如果之後想要「手機跟電腦即時同步」，會需要接一個雲端資料庫（例如 Google Sheets 或 Firebase），這是進階版本，可以之後再加。
+1. 先確認 Firebase Console 已啟用 Firestore Database 和 Anonymous Authentication。
+2. 定期在兩個頁面都按「匯出備份 (JSON)」下載備份檔，作為人工備份。
+3. 如果有舊的 localStorage 備份，可以用「匯入備份」匯入；下一次儲存會同步到 Firestore。
 
 ## 怎麼用 GitHub 部署成網頁（GitHub Pages，完全免費）
 
