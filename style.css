@@ -432,8 +432,10 @@ header.top::after{
 .item-editor label{
   font-size:11px; color:var(--ink-faint); margin-bottom:3px; display:block;
 }
-.item-editor input{
+.item-editor input,
+.item-editor select{
   width:100%; min-width:0; padding:8px 9px; border:1px solid var(--line); border-radius:8px; font-size:13.5px; background:#fff;
+  color:var(--ink); font-family:inherit;
 }
 .item-remove{
   position:absolute; top:8px; right:8px;

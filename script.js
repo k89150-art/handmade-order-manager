@@ -56,6 +56,23 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
     formItems: [] // temp items while editing in modal
   };
 
+  var PRODUCT_NAMES = [
+    "雙杯飲料提袋",
+    "手搖飲提袋",
+    "水壺提袋",
+    "信封式收納袋（單層、雙層）",
+    "證件套",
+    "附掛繩化妝袋、筆袋",
+    "桌上型衛生紙套",
+    "車用衛生紙套",
+    "外出輕便側背袋",
+    "髮圈",
+    "彈片口金包",
+    "L型短夾",
+    "托特包（S、M、L）",
+    "零錢包"
+  ];
+
   /* ===================== Helpers ===================== */
   function uid(){
     return 'o_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,8);
@@ -80,6 +97,17 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
     return String(s==null?'':s).replace(/[&<>"']/g, function(c){
       return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
     });
+  }
+  function productOptionsHtml(selectedName){
+    selectedName = selectedName || '';
+    var options = ['<option value="">請選擇商品</option>'];
+    if(selectedName && !PRODUCT_NAMES.includes(selectedName)){
+      options.push('<option value="'+escapeHtml(selectedName)+'" selected>'+escapeHtml(selectedName)+'</option>');
+    }
+    PRODUCT_NAMES.forEach(function(name){
+      options.push('<option value="'+escapeHtml(name)+'"'+(name === selectedName ? ' selected' : '')+'>'+escapeHtml(name)+'</option>');
+    });
+    return options.join('');
   }
   // Deterministic swatch color from a text string (fabric / first item name)
   var SWATCH_COLORS = ['#2C3E5C','#B5502E','#B8841C','#4F7A5B','#6B4C6E','#3C6E71','#8A5A2E'];
@@ -295,14 +323,16 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
       });
     });
     el.querySelectorAll('[data-field]').forEach(function(input){
-      input.addEventListener('input', function(){
+      var updateItemField = function(){
         var idx = Number(input.getAttribute('data-idx'));
         var field = input.getAttribute('data-field');
         var val = input.value;
         state.formItems[idx][field] = (field==='qty' || field==='price') ? Number(val) : val;
         updateSubtotalRow(idx);
         updateTotalPreview();
-      });
+      };
+      input.addEventListener('input', updateItemField);
+      input.addEventListener('change', updateItemField);
     });
     updateTotalPreview();
   }
@@ -311,7 +341,7 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
     return '<div class="item-editor" data-row="'+idx+'">'
       + '<button type="button" class="item-remove" data-remove="'+idx+'" aria-label="刪除品項">×</button>'
       + '<div class="item-grid">'
-        + '<div><label>商品名稱</label><input type="text" placeholder="例如：托特包" value="'+escapeHtml(it.name)+'" data-field="name" data-idx="'+idx+'"></div>'
+        + '<div><label>商品名稱</label><select data-field="name" data-idx="'+idx+'">'+productOptionsHtml(it.name)+'</select></div>'
         + '<div><label>布料／款式</label><input type="text" placeholder="例如：藍染帆布" value="'+escapeHtml(it.fabric)+'" data-field="fabric" data-idx="'+idx+'"></div>'
         + '<div><label>數量</label><input type="number" min="0" step="1" inputmode="numeric" value="'+ (it.qty!=null?it.qty:1) +'" data-field="qty" data-idx="'+idx+'"></div>'
         + '<div><label>單價</label><input type="number" min="0" step="1" inputmode="decimal" value="'+ (it.price!=null?it.price:0) +'" data-field="price" data-idx="'+idx+'"></div>'
