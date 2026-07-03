@@ -75,6 +75,7 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
     "托特包（L）",
     "零錢包"
   ];
+  var CUSTOM_PRODUCT_VALUE = "__custom_product__";
 
   /* ===================== Helpers ===================== */
   function uid(){
@@ -101,15 +102,14 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
       return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
     });
   }
-  function productOptionsHtml(selectedName){
+  function productOptionsHtml(selectedName, forceCustom){
     selectedName = selectedName || '';
     var options = ['<option value="">請選擇商品</option>'];
-    if(selectedName && !PRODUCT_NAMES.includes(selectedName)){
-      options.push('<option value="'+escapeHtml(selectedName)+'" selected>'+escapeHtml(selectedName)+'</option>');
-    }
+    var isCustomProduct = forceCustom || (selectedName && !PRODUCT_NAMES.includes(selectedName));
     PRODUCT_NAMES.forEach(function(name){
       options.push('<option value="'+escapeHtml(name)+'"'+(name === selectedName ? ' selected' : '')+'>'+escapeHtml(name)+'</option>');
     });
+    options.push('<option value="'+CUSTOM_PRODUCT_VALUE+'"'+(isCustomProduct ? ' selected' : '')+'>自訂商品</option>');
     return options.join('');
   }
   // Deterministic swatch color from a text string (fabric / first item name)
@@ -330,6 +330,17 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
         var idx = Number(input.getAttribute('data-idx'));
         var field = input.getAttribute('data-field');
         var val = input.value;
+        if(field === 'name' && val === CUSTOM_PRODUCT_VALUE){
+          state.formItems[idx].customProduct = true;
+          state.formItems[idx].name = '';
+          renderItemsEditor();
+          setTimeout(function(){
+            var customInput = document.querySelector('[data-custom-product][data-idx="'+idx+'"]');
+            if(customInput) customInput.focus();
+          }, 0);
+          return;
+        }
+        if(field === 'name') state.formItems[idx].customProduct = false;
         state.formItems[idx][field] = (field==='qty' || field==='price') ? Number(val) : val;
         updateSubtotalRow(idx);
         updateTotalPreview();
@@ -337,14 +348,25 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
       input.addEventListener('input', updateItemField);
       input.addEventListener('change', updateItemField);
     });
+    el.querySelectorAll('[data-custom-product]').forEach(function(input){
+      var updateCustomProduct = function(){
+        var idx = Number(input.getAttribute('data-idx'));
+        state.formItems[idx].customProduct = true;
+        state.formItems[idx].name = input.value;
+      };
+      input.addEventListener('input', updateCustomProduct);
+      input.addEventListener('change', updateCustomProduct);
+    });
     updateTotalPreview();
   }
 
   function itemEditorRow(it, idx){
+    var isCustomProduct = it.customProduct || (it.name && !PRODUCT_NAMES.includes(it.name));
     return '<div class="item-editor" data-row="'+idx+'">'
       + '<button type="button" class="item-remove" data-remove="'+idx+'" aria-label="刪除品項">×</button>'
       + '<div class="item-grid">'
-        + '<div><label>商品名稱</label><select data-field="name" data-idx="'+idx+'">'+productOptionsHtml(it.name)+'</select></div>'
+        + '<div><label>商品名稱</label><select data-field="name" data-idx="'+idx+'">'+productOptionsHtml(it.name, isCustomProduct)+'</select>'
+          + '<input class="custom-product-input'+(isCustomProduct ? ' show' : '')+'" type="text" placeholder="輸入客製商品" value="'+(isCustomProduct ? escapeHtml(it.name) : '')+'" data-custom-product data-idx="'+idx+'"></div>'
         + '<div><label>布料／款式</label><input type="text" placeholder="例如：藍染帆布" value="'+escapeHtml(it.fabric)+'" data-field="fabric" data-idx="'+idx+'"></div>'
         + '<div><label>數量</label><input type="number" min="0" step="1" inputmode="numeric" value="'+ (it.qty!=null?it.qty:1) +'" data-field="qty" data-idx="'+idx+'"></div>'
         + '<div><label>單價</label><input type="number" min="0" step="1" inputmode="decimal" value="'+ (it.price!=null?it.price:0) +'" data-field="price" data-idx="'+idx+'"></div>'

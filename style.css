@@ -437,6 +437,13 @@ header.top::after{
   width:100%; min-width:0; padding:8px 9px; border:1px solid var(--line); border-radius:8px; font-size:13.5px; background:#fff;
   color:var(--ink); font-family:inherit;
 }
+.item-editor .custom-product-input{
+  display:none;
+  margin-top:6px;
+}
+.item-editor .custom-product-input.show{
+  display:block;
+}
 .item-remove{
   position:absolute; top:8px; right:8px;
   background: var(--rust-tint); color:var(--rust);
