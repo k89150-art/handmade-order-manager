@@ -6,6 +6,8 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
   /* ===================== Storage ===================== */
   var STORAGE_KEY = "handmadeCostSheets_v1";
   var cloudSheets = createCloudStore("costSheets");
+  var isSavingSheet = false;
+  var deferredCloudLoad = false;
 
   function loadSheets(){
     try{
@@ -18,8 +20,9 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
   }
   function saveSheets(sheets){
     localStorage.setItem(STORAGE_KEY, JSON.stringify(sheets));
-    cloudSheets.saveAll(sheets).catch(function(error){
+    return cloudSheets.saveAll(sheets).catch(function(error){
       console.error("Failed to sync cost sheets to Firestore", error);
+      throw error;
     });
   }
   function clearSheetsView(){
@@ -31,7 +34,12 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
     renderList();
   }
   function loadSheetsFromCloud(){
-    cloudSheets.loadAll().then(function(sheets){
+    if(isSavingSheet || (typeof overlay !== 'undefined' && overlay && overlay.classList.contains('open'))){
+      deferredCloudLoad = true;
+      return Promise.resolve(null);
+    }
+    deferredCloudLoad = false;
+    return cloudSheets.loadAll().then(function(sheets){
       if(sheets === null) return;
       state.sheets = sheets;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state.sheets));
@@ -275,6 +283,7 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
     overlay.classList.remove('open');
     unlockPageScroll();
     state.editingId = null;
+    if(deferredCloudLoad && !isSavingSheet) loadSheetsFromCloud();
   }
 
   /* ---------- Materials repeater ---------- */
@@ -491,8 +500,9 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
   });
 
   /* ---------- Save / delete ---------- */
-  document.getElementById('sheetForm').addEventListener('submit', function(e){
+  document.getElementById('sheetForm').addEventListener('submit', async function(e){
     e.preventDefault();
+    if(isSavingSheet) return;
 
     var cleanMaterials = state.formMaterials
       .map(function(m){
@@ -520,6 +530,12 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
       note: document.getElementById('f_note').value.trim()
     };
 
+    var saveBtn = document.getElementById('saveBtn');
+    var saveBtnText = saveBtn.textContent;
+    isSavingSheet = true;
+    saveBtn.disabled = true;
+    saveBtn.textContent = '儲存中...';
+
     if(state.editingId){
       var existing = state.sheets.find(function(s){ return s.id === state.editingId; });
       Object.assign(existing, data);
@@ -530,13 +546,23 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
       data.createdAt = Date.now();
       data.updatedAt = Date.now();
       state.sheets.push(data);
+      state.editingId = data.id;
       toast('已新增成本表');
     }
 
-    saveSheets(state.sheets);
-    closeForm();
-    renderStats();
-    renderList();
+    try{
+      await saveSheets(state.sheets);
+      deferredCloudLoad = false;
+      closeForm();
+      renderStats();
+      renderList();
+    }catch(error){
+      toast('儲存失敗，請確認網路或重新登入後再試');
+    }finally{
+      isSavingSheet = false;
+      saveBtn.disabled = false;
+      saveBtn.textContent = saveBtnText;
+    }
   });
 
   document.getElementById('deleteSheetBtn').addEventListener('click', function(){
