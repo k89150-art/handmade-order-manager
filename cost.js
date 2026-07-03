@@ -26,6 +26,10 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
     });
   }
   function clearSheetsView(){
+    if(typeof overlay !== 'undefined' && overlay && overlay.classList.contains('open')){
+      deferredCloudLoad = true;
+      return;
+    }
     state.sheets = [];
     state.editingId = null;
     localStorage.removeItem(STORAGE_KEY);
