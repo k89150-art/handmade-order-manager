@@ -60,7 +60,8 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
     "雙杯飲料提袋",
     "手搖飲提袋",
     "水壺提袋",
-    "信封式收納袋（單層、雙層）",
+    "信封式收納袋（單層）",
+    "信封式收納袋（雙層）",
     "證件套",
     "附掛繩化妝袋、筆袋",
     "桌上型衛生紙套",
@@ -69,7 +70,9 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
     "髮圈",
     "彈片口金包",
     "L型短夾",
-    "托特包（S、M、L）",
+    "托特包（S）",
+    "托特包（M）",
+    "托特包（L）",
     "零錢包"
   ];
 
