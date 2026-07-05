@@ -1,4 +1,4 @@
-import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1";
+import { createCloudStore } from "./firebase-backend.js?v=20260706-single-sync1";
 
 (function(){
   "use strict";
@@ -8,6 +8,7 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
   var cloudSheets = createCloudStore("costSheets");
   var isSavingSheet = false;
   var deferredCloudLoad = false;
+  var isFormDirty = false;
 
   function loadSheets(){
     try{
@@ -20,8 +21,34 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
   }
   function saveSheets(sheets){
     localStorage.setItem(STORAGE_KEY, JSON.stringify(sheets));
+    setSyncStatus("syncing", "同步中");
     return cloudSheets.saveAll(sheets).catch(function(error){
+      setSyncStatus("error", "同步失敗");
       console.error("Failed to sync cost sheets to Firestore", error);
+      throw error;
+    }).then(function(){
+      setSyncStatus("synced", "已同步");
+    });
+  }
+  function saveSheet(sheet){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.sheets));
+    setSyncStatus("syncing", "同步中");
+    return cloudSheets.saveOne(sheet).then(function(){
+      setSyncStatus("synced", "已同步");
+    }).catch(function(error){
+      setSyncStatus("error", "同步失敗");
+      console.error("Failed to sync cost sheet to Firestore", error);
+      throw error;
+    });
+  }
+  function deleteSheetFromCloud(sheetId){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.sheets));
+    setSyncStatus("syncing", "同步中");
+    return cloudSheets.deleteOne(sheetId).then(function(){
+      setSyncStatus("synced", "已同步");
+    }).catch(function(error){
+      setSyncStatus("error", "同步失敗");
+      console.error("Failed to delete cost sheet from Firestore", error);
       throw error;
     });
   }
@@ -44,12 +71,17 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
     }
     deferredCloudLoad = false;
     return cloudSheets.loadAll().then(function(sheets){
-      if(sheets === null) return;
+      if(sheets === null){
+        setSyncStatus("error", "未登入");
+        return;
+      }
       state.sheets = sheets;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state.sheets));
+      setSyncStatus("synced", "已同步");
       renderStats();
       renderList();
     }).catch(function(error){
+      setSyncStatus("error", "同步失敗");
       console.error("Failed to load cost sheets from Firestore", error);
     });
   }
@@ -94,6 +126,23 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
     el.classList.add('show');
     clearTimeout(el._t);
     el._t = setTimeout(function(){ el.classList.remove('show'); }, 2200);
+  }
+  function setSyncStatus(status, text){
+    var el = document.getElementById('syncStatus');
+    if(!el){
+      el = document.createElement('div');
+      el.id = 'syncStatus';
+      var toolbar = document.querySelector('.toolbar');
+      if(toolbar) toolbar.appendChild(el);
+    }
+    el.className = 'sync-status ' + status;
+    el.textContent = text;
+  }
+  function markFormDirty(){
+    if(overlay && overlay.classList.contains('open')) isFormDirty = true;
+  }
+  function canCloseForm(){
+    return !isFormDirty || confirm('內容尚未儲存，確定離開嗎？');
   }
 
   /* ===================== Pricing math ===================== */
@@ -250,6 +299,7 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
 
   function openForm(sheetId){
     state.editingId = sheetId || null;
+    isFormDirty = false;
     var s = sheetId ? state.sheets.find(function(x){ return x.id === sheetId; }) : null;
 
     document.getElementById('modalTitle').textContent = s ? '編輯商品成本表' : '新增商品成本表';
@@ -283,11 +333,14 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
     setTimeout(function(){ document.getElementById('f_name').focus(); }, 50);
   }
 
-  function closeForm(){
+  function closeForm(force){
+    if(!force && !canCloseForm()) return false;
     overlay.classList.remove('open');
     unlockPageScroll();
     state.editingId = null;
+    isFormDirty = false;
     if(deferredCloudLoad && !isSavingSheet) loadSheetsFromCloud();
+    return true;
   }
 
   /* ---------- Materials repeater ---------- */
@@ -303,6 +356,7 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
           return;
         }
         state.formMaterials.splice(idx, 1);
+        markFormDirty();
         renderMaterialsEditor();
         recalcOutputs();
       });
@@ -313,6 +367,7 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
         var field = input.getAttribute('data-field');
         var val = input.value;
         state.formMaterials[idx][field] = (field==='qty' || field==='unitCost') ? Number(val) : val;
+        markFormDirty();
         updateMaterialSubtotal(idx);
         recalcOutputs();
       });
@@ -340,6 +395,7 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
 
   document.getElementById('addMaterialBtn').addEventListener('click', function(){
     state.formMaterials.push({ id: uid(), name:'', unit:'', qty:1, unitCost:0 });
+    markFormDirty();
     renderMaterialsEditor();
     recalcOutputs();
   });
@@ -399,6 +455,7 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
     };
 
     renderMaterialsEditor();
+    markFormDirty();
     recalcOutputs();
     toast('已帶入材料費');
   }
@@ -423,6 +480,7 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
         if(e.target.tagName === 'INPUT' && e.target.type !== 'radio') return;
         var method = row.getAttribute('data-method');
         state.formParams.pricingMethod = method;
+        markFormDirty();
         row.querySelector('input[type="radio"]').checked = true;
         highlightActiveRow();
         recalcOutputs();
@@ -430,14 +488,17 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
     });
     document.getElementById('mm_multiplier').addEventListener('input', function(e){
       state.formParams.markupMultiplier = Number(e.target.value)||0;
+      markFormDirty();
       recalcOutputs();
     });
     document.getElementById('mm_margin').addEventListener('input', function(e){
       state.formParams.marginPercent = Number(e.target.value)||0;
+      markFormDirty();
       recalcOutputs();
     });
     document.getElementById('mm_fixed').addEventListener('input', function(e){
       state.formParams.fixedProfit = Number(e.target.value)||0;
+      markFormDirty();
       recalcOutputs();
     });
     highlightActiveRow();
@@ -502,6 +563,8 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
   ['f_laborHours','f_hourlyRate','f_packaging','f_other','f_platformFee'].forEach(function(id){
     document.getElementById(id).addEventListener('input', recalcOutputs);
   });
+  document.getElementById('sheetForm').addEventListener('input', markFormDirty);
+  document.getElementById('sheetForm').addEventListener('change', markFormDirty);
 
   /* ---------- Save / delete ---------- */
   document.getElementById('sheetForm').addEventListener('submit', async function(e){
@@ -555,9 +618,9 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
     }
 
     try{
-      await saveSheets(state.sheets);
+      await saveSheet(state.sheets.find(function(s){ return s.id === state.editingId; }));
       deferredCloudLoad = false;
-      closeForm();
+      closeForm(true);
       renderStats();
       renderList();
     }catch(error){
@@ -569,12 +632,21 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
     }
   });
 
-  document.getElementById('deleteSheetBtn').addEventListener('click', function(){
+  document.getElementById('deleteSheetBtn').addEventListener('click', async function(){
     if(!state.editingId) return;
     if(!confirm('確定要刪除這個商品的成本表嗎？此動作無法復原。')) return;
-    state.sheets = state.sheets.filter(function(s){ return s.id !== state.editingId; });
-    saveSheets(state.sheets);
-    closeForm();
+    var deletedId = state.editingId;
+    var previousSheets = state.sheets.slice();
+    state.sheets = state.sheets.filter(function(s){ return s.id !== deletedId; });
+    try{
+      await deleteSheetFromCloud(deletedId);
+      closeForm(true);
+    }catch(error){
+      state.sheets = previousSheets;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.sheets));
+      toast('刪除失敗，請確認網路或重新登入後再試');
+      return;
+    }
     renderStats();
     renderList();
     toast('已刪除成本表');
@@ -683,10 +755,14 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
   }
 
   /* ===================== Init ===================== */
+  setSyncStatus("syncing", "同步中");
   renderStats();
   renderList();
   window.addEventListener("handmade-auth-change", function(event){
-    if(!event.detail || !event.detail.signedIn) clearSheetsView();
+    if(!event.detail || !event.detail.signedIn){
+      setSyncStatus("error", "未登入");
+      clearSheetsView();
+    }
   });
   window.addEventListener("handmade-auth-ready", loadSheetsFromCloud);
   loadSheetsFromCloud();

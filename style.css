@@ -171,6 +171,19 @@ header.top::after{
 .btn-danger-ghost:hover{ background: var(--rust-tint); }
 .btn-sm{ padding: 6px 10px; font-size: 12px; border-radius: 8px; }
 .spacer{flex:1 1 auto;}
+.sync-status{
+  flex:0 0 auto;
+  border:1px solid var(--line-strong);
+  border-radius:999px;
+  padding:6px 10px;
+  font-size:12px;
+  font-weight:700;
+  color:var(--ink-soft);
+  background:#fff;
+}
+.sync-status.syncing{ color:var(--indigo); background:var(--indigo-tint); }
+.sync-status.synced{ color:var(--sage); background:var(--sage-tint); }
+.sync-status.error{ color:var(--rust); background:var(--rust-tint); }
 
 .backup-row{
   display:flex; gap:8px; justify-content:flex-end; margin-top:10px; flex-wrap:wrap;

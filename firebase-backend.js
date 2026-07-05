@@ -221,9 +221,31 @@ export function createCloudStore(collectionName) {
       if (!user) {
         if (!authUiReady) renderAuthUi(null);
         console.warn("Skipped Firestore sync because the user is not signed in.");
-        return;
+        throw new Error("Cannot sync because the user is not signed in.");
       }
       await saveItemsToCollection(collectionForUser(user, collectionName), collectionName, items);
+    },
+
+    async saveOne(item) {
+      const user = await requireUser();
+      if (!user) {
+        if (!authUiReady) renderAuthUi(null);
+        console.warn("Skipped Firestore sync because the user is not signed in.");
+        throw new Error("Cannot sync because the user is not signed in.");
+      }
+      if (!item || !item.id) throw new Error("Cannot save an item without an id.");
+      await setDoc(doc(collectionForUser(user, collectionName), item.id), cleanForFirestore(item));
+    },
+
+    async deleteOne(id) {
+      const user = await requireUser();
+      if (!user) {
+        if (!authUiReady) renderAuthUi(null);
+        console.warn("Skipped Firestore sync because the user is not signed in.");
+        throw new Error("Cannot sync because the user is not signed in.");
+      }
+      if (!id) throw new Error("Cannot delete an item without an id.");
+      await deleteDoc(doc(collectionForUser(user, collectionName), id));
     }
   };
 }

@@ -1,4 +1,4 @@
-import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1";
+import { createCloudStore } from "./firebase-backend.js?v=20260706-single-sync1";
 
 (function(){
   "use strict";
@@ -8,6 +8,7 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
   var cloudOrders = createCloudStore("orders");
   var isSavingOrder = false;
   var deferredCloudLoad = false;
+  var isFormDirty = false;
 
   function loadOrders(){
     try{
@@ -20,8 +21,34 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
   }
   function saveOrders(orders){
     localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
+    setSyncStatus("syncing", "同步中");
     return cloudOrders.saveAll(orders).catch(function(error){
+      setSyncStatus("error", "同步失敗");
       console.error("Failed to sync orders to Firestore", error);
+      throw error;
+    }).then(function(){
+      setSyncStatus("synced", "已同步");
+    });
+  }
+  function saveOrder(order){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.orders));
+    setSyncStatus("syncing", "同步中");
+    return cloudOrders.saveOne(order).then(function(){
+      setSyncStatus("synced", "已同步");
+    }).catch(function(error){
+      setSyncStatus("error", "同步失敗");
+      console.error("Failed to sync order to Firestore", error);
+      throw error;
+    });
+  }
+  function deleteOrderFromCloud(orderId){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.orders));
+    setSyncStatus("syncing", "同步中");
+    return cloudOrders.deleteOne(orderId).then(function(){
+      setSyncStatus("synced", "已同步");
+    }).catch(function(error){
+      setSyncStatus("error", "同步失敗");
+      console.error("Failed to delete order from Firestore", error);
       throw error;
     });
   }
@@ -44,12 +71,17 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
     }
     deferredCloudLoad = false;
     return cloudOrders.loadAll().then(function(orders){
-      if(orders === null) return;
+      if(orders === null){
+        setSyncStatus("error", "未登入");
+        return;
+      }
       state.orders = orders;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state.orders));
+      setSyncStatus("synced", "已同步");
       renderStats();
       renderList();
     }).catch(function(error){
+      setSyncStatus("error", "同步失敗");
       console.error("Failed to load orders from Firestore", error);
     });
   }
@@ -138,6 +170,23 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
     el.classList.add('show');
     clearTimeout(el._t);
     el._t = setTimeout(function(){ el.classList.remove('show'); }, 2200);
+  }
+  function setSyncStatus(status, text){
+    var el = document.getElementById('syncStatus');
+    if(!el){
+      el = document.createElement('div');
+      el.id = 'syncStatus';
+      var toolbar = document.querySelector('.toolbar');
+      if(toolbar) toolbar.appendChild(el);
+    }
+    el.className = 'sync-status ' + status;
+    el.textContent = text;
+  }
+  function markFormDirty(){
+    if(overlay && overlay.classList.contains('open')) isFormDirty = true;
+  }
+  function canCloseForm(){
+    return !isFormDirty || confirm('內容尚未儲存，確定離開嗎？');
   }
 
   /* ===================== Stats ===================== */
@@ -282,6 +331,7 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
 
   function openForm(orderId){
     state.editingId = orderId || null;
+    isFormDirty = false;
     var order = orderId ? state.orders.find(function(o){ return o.id === orderId; }) : null;
 
     document.getElementById('modalTitle').textContent = order ? '編輯訂單' : '新增訂單';
@@ -305,11 +355,14 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
     setTimeout(function(){ document.getElementById('f_customer').focus(); }, 50);
   }
 
-  function closeForm(){
+  function closeForm(force){
+    if(!force && !canCloseForm()) return false;
     overlay.classList.remove('open');
     unlockPageScroll();
     state.editingId = null;
+    isFormDirty = false;
     if(deferredCloudLoad && !isSavingOrder) loadOrdersFromCloud();
+    return true;
   }
 
   function renderItemsEditor(){
@@ -326,6 +379,7 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
           return;
         }
         state.formItems.splice(idx, 1);
+        markFormDirty();
         renderItemsEditor();
       });
     });
@@ -337,6 +391,7 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
         if(field === 'name' && val === CUSTOM_PRODUCT_VALUE){
           state.formItems[idx].customProduct = true;
           state.formItems[idx].name = '';
+          markFormDirty();
           renderItemsEditor();
           setTimeout(function(){
             var customInput = document.querySelector('[data-custom-product][data-idx="'+idx+'"]');
@@ -346,6 +401,7 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
         }
         if(field === 'name') state.formItems[idx].customProduct = false;
         state.formItems[idx][field] = (field==='qty' || field==='price') ? Number(val) : val;
+        markFormDirty();
         updateSubtotalRow(idx);
         updateTotalPreview();
       };
@@ -357,6 +413,7 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
         var idx = Number(input.getAttribute('data-idx'));
         state.formItems[idx].customProduct = true;
         state.formItems[idx].name = input.value;
+        markFormDirty();
       };
       input.addEventListener('input', updateCustomProduct);
       input.addEventListener('change', updateCustomProduct);
@@ -391,8 +448,11 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
 
   document.getElementById('addItemBtn').addEventListener('click', function(){
     state.formItems.push({ id: uid(), name:'', fabric:'', qty:1, price:0 });
+    markFormDirty();
     renderItemsEditor();
   });
+  document.getElementById('orderForm').addEventListener('input', markFormDirty);
+  document.getElementById('orderForm').addEventListener('change', markFormDirty);
 
   document.getElementById('orderForm').addEventListener('submit', async function(e){
     e.preventDefault();
@@ -441,9 +501,9 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
     }
 
     try{
-      await saveOrders(state.orders);
+      await saveOrder(state.orders.find(function(o){ return o.id === state.editingId; }));
       deferredCloudLoad = false;
-      closeForm();
+      closeForm(true);
       renderStats();
       renderList();
     }catch(error){
@@ -455,12 +515,21 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
     }
   });
 
-  document.getElementById('deleteOrderBtn').addEventListener('click', function(){
+  document.getElementById('deleteOrderBtn').addEventListener('click', async function(){
     if(!state.editingId) return;
     if(!confirm('確定要刪除這筆訂單嗎？此動作無法復原。')) return;
-    state.orders = state.orders.filter(function(o){ return o.id !== state.editingId; });
-    saveOrders(state.orders);
-    closeForm();
+    var deletedId = state.editingId;
+    var previousOrders = state.orders.slice();
+    state.orders = state.orders.filter(function(o){ return o.id !== deletedId; });
+    try{
+      await deleteOrderFromCloud(deletedId);
+      closeForm(true);
+    }catch(error){
+      state.orders = previousOrders;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.orders));
+      toast('刪除失敗，請確認網路或重新登入後再試');
+      return;
+    }
     renderStats();
     renderList();
     toast('已刪除訂單');
@@ -556,10 +625,14 @@ import { createCloudStore } from "./firebase-backend.js?v=20260701-auth-header1"
   }
 
   /* ===================== Init ===================== */
+  setSyncStatus("syncing", "同步中");
   renderStats();
   renderList();
   window.addEventListener("handmade-auth-change", function(event){
-    if(!event.detail || !event.detail.signedIn) clearOrdersView();
+    if(!event.detail || !event.detail.signedIn){
+      setSyncStatus("error", "未登入");
+      clearOrdersView();
+    }
   });
   window.addEventListener("handmade-auth-ready", loadOrdersFromCloud);
   loadOrdersFromCloud();
