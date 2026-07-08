@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>手作庫存管理器</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%A6%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700;900&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=20260708-inventory1">
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand">
+      <span class="mark">📦</span>
+      <h1>手作庫存管理器</h1>
+      <div class="nav-links">
+        <a class="nav-link" href="index.html">🧵 訂單管理器</a>
+        <a class="nav-link" href="cost.html">🧮 成本計算器</a>
+      </div>
+    </div>
+    <div class="sub">管理成品、材料與包材庫存，記錄每一次入庫、出庫與盤點調整</div>
+
+    <div class="stats" id="stats">
+      <!-- filled by JS -->
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="toolbar">
+    <input type="search" id="searchInput" placeholder="搜尋品名 / 規格 / 位置...">
+    <select id="filterType">
+      <option value="">類型：全部</option>
+      <option value="成品">成品</option>
+      <option value="材料">材料</option>
+      <option value="布料">布料</option>
+      <option value="五金">五金</option>
+      <option value="包材">包材</option>
+      <option value="工具耗材">工具耗材</option>
+      <option value="其他">其他</option>
+    </select>
+    <select id="filterStock">
+      <option value="">庫存：全部</option>
+      <option value="low">只看低庫存</option>
+      <option value="available">只看有庫存</option>
+      <option value="zero">只看缺貨</option>
+    </select>
+    <div class="spacer"></div>
+    <button class="btn btn-primary" id="openAddBtn">＋ 新增庫存</button>
+  </div>
+
+  <div class="backup-row">
+    <span class="hint">庫存會同步到 Firebase；仍建議定期匯出備份。</span>
+    <button class="btn btn-ghost btn-sm" id="exportJsonBtn">匯出備份 (JSON)</button>
+    <button class="btn btn-ghost btn-sm" id="importJsonBtn">匯入備份</button>
+    <button class="btn btn-ghost btn-sm" id="exportCsvBtn">匯出 CSV</button>
+    <input type="file" id="importFileInput" accept="application/json" style="display:none">
+  </div>
+
+  <div class="list" id="inventoryList">
+    <!-- filled by JS -->
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="modalTitle">新增庫存品項</h2>
+      <button class="modal-close" id="modalCloseBtn" aria-label="關閉">×</button>
+    </div>
+    <div class="modal-body">
+      <form id="inventoryForm">
+        <div class="field">
+          <label for="f_name">品項名稱</label>
+          <input type="text" id="f_name" placeholder="例如：托特包（M）" required>
+        </div>
+
+        <div class="row2">
+          <div class="field">
+            <label for="f_type">類型</label>
+            <select id="f_type">
+              <option value="成品">成品</option>
+              <option value="材料">材料</option>
+              <option value="布料">布料</option>
+              <option value="五金">五金</option>
+              <option value="包材">包材</option>
+              <option value="工具耗材">工具耗材</option>
+              <option value="其他">其他</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="f_unit">單位</label>
+            <select id="f_unit">
+              <option value="個">個</option>
+              <option value="件">件</option>
+              <option value="碼">碼</option>
+              <option value="公分">公分</option>
+              <option value="公尺">公尺</option>
+              <option value="包">包</option>
+              <option value="捲">捲</option>
+              <option value="片">片</option>
+              <option value="組">組</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="f_variant">規格 / 款式</label>
+          <input type="text" id="f_variant" placeholder="例如：藍花布、S、金色五金">
+        </div>
+
+        <div class="row3">
+          <div class="field">
+            <label for="f_quantity">目前數量</label>
+            <input type="number" id="f_quantity" min="0" step="0.01" inputmode="decimal" value="0">
+          </div>
+          <div class="field">
+            <label for="f_safetyStock">安全庫存</label>
+            <input type="number" id="f_safetyStock" min="0" step="0.01" inputmode="decimal" value="0">
+          </div>
+          <div class="field">
+            <label for="f_unitCost">單位成本</label>
+            <input type="number" id="f_unitCost" min="0" step="0.01" inputmode="decimal" value="0">
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="f_location">存放位置</label>
+          <input type="text" id="f_location" placeholder="例如：工作室左櫃、布料箱 A">
+        </div>
+
+        <div class="field">
+          <label for="f_note">備註</label>
+          <textarea id="f_note" placeholder="可空白，或輸入補充說明"></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn btn-danger-ghost" id="deleteItemBtn" style="display:none;">刪除此品項</button>
+      <div class="spacer"></div>
+      <button type="button" class="btn btn-ghost" id="cancelBtn">取消</button>
+      <button type="submit" form="inventoryForm" class="btn btn-primary" id="saveBtn">儲存庫存</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module" src="inventory.js?v=20260708-inventory1"></script>
+</body>
+</html>
