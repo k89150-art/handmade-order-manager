@@ -36,10 +36,6 @@ service cloud.firestore {
       allow read, write: if canAccessWorkspace(workspaceId);
     }
 
-    match /workspaces/{workspaceId}/inventoryItems/{itemId} {
-      allow read, write: if canAccessWorkspace(workspaceId);
-    }
-
     // Legacy collections are kept read-only for the family accounts so the app
     // can migrate existing data into workspaces/family on first use.
     match /orders/{orderId} {
@@ -48,11 +44,6 @@ service cloud.firestore {
     }
 
     match /costSheets/{sheetId} {
-      allow read: if isFamilyUser();
-      allow write: if false;
-    }
-
-    match /inventoryItems/{itemId} {
       allow read: if isFamilyUser();
       allow write: if false;
     }
