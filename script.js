@@ -1,4 +1,4 @@
-import { createCloudStore } from "./firebase-backend.js?v=20260706-single-sync1";
+import { createCloudStore } from "./firebase-backend.js?v=20260723-migration-marker1";
 
 (function(){
   "use strict";

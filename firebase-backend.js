@@ -41,6 +41,7 @@ const FAMILY_USERS = [
     email: "k89150@gmail.com"
   }
 ];
+const LEGACY_MIGRATION_DOC_ID = "__legacy_migrated__";
 
 let authUiReady = false;
 let currentUser = null;
@@ -176,9 +177,11 @@ function legacyCollection(collectionName) {
 }
 
 function docsToItems(snap) {
-  return snap.docs.map(function(documentSnap) {
-    return Object.assign({ id: documentSnap.id }, documentSnap.data());
-  });
+  return snap.docs
+    .filter(function(documentSnap) { return documentSnap.id !== LEGACY_MIGRATION_DOC_ID; })
+    .map(function(documentSnap) {
+      return Object.assign({ id: documentSnap.id }, documentSnap.data());
+    });
 }
 
 async function saveItemsToCollection(colRef, collectionName, items) {
@@ -187,6 +190,7 @@ async function saveItemsToCollection(colRef, collectionName, items) {
   const nextIds = new Set(safeItems.map(function(item) { return item.id; }).filter(Boolean));
 
   await Promise.all(existing.docs.map(function(documentSnap) {
+    if (documentSnap.id === LEGACY_MIGRATION_DOC_ID) return Promise.resolve();
     if (nextIds.has(documentSnap.id)) return Promise.resolve();
     return deleteDoc(documentSnap.ref);
   }));
@@ -195,6 +199,19 @@ async function saveItemsToCollection(colRef, collectionName, items) {
     const id = item.id || String(Date.now());
     return setDoc(doc(colRef, id), cleanForFirestore(Object.assign({}, item, { id: id })));
   }));
+}
+
+function hasLegacyMigrationMarker(snap) {
+  return snap.docs.some(function(documentSnap) {
+    return documentSnap.id === LEGACY_MIGRATION_DOC_ID;
+  });
+}
+
+function markLegacyMigrationDone(colRef, collectionName) {
+  return setDoc(doc(colRef, LEGACY_MIGRATION_DOC_ID), {
+    migratedAt: Date.now(),
+    collectionName: collectionName
+  });
 }
 
 export function createCloudStore(collectionName) {
@@ -206,13 +223,18 @@ export function createCloudStore(collectionName) {
       const colRef = collectionForUser(user, collectionName);
       const snap = await getDocs(colRef);
       const workspaceItems = docsToItems(snap);
+      if (hasLegacyMigrationMarker(snap)) return workspaceItems;
       if (workspaceItems.length || !isFamilyUser(user)) return workspaceItems;
 
       const legacySnap = await getDocs(legacyCollection(collectionName));
       const legacyItems = docsToItems(legacySnap);
-      if (!legacyItems.length) return [];
+      if (!legacyItems.length) {
+        await markLegacyMigrationDone(colRef, collectionName);
+        return [];
+      }
 
       await saveItemsToCollection(colRef, collectionName, legacyItems);
+      await markLegacyMigrationDone(colRef, collectionName);
       return legacyItems;
     },
 
